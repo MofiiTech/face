@@ -11,13 +11,13 @@ def generate_face(filename: str ='tmp', random: str ='random', race: str ='any',
     '''Generate a face image with parameters
     
     Parameters:
-    filename (str): filename for local tmp files, default 'tmp'
-    random (str):   face domain, default 'random'
-                        [random, average]
-    race (str):     race param of the face, default 'any'
-                        [african | european | eastAsian | southAsian | any]
-    gender (str):   gender param of the face, default 'any'
-                        [male | female | any]
+    filename (str):     filename for local tmp files, default 'tmp'
+    random (str):       face domain, default 'random'
+                            [random, average]
+    race (str):         race param of the face, default 'any'
+                            [african | european | eastAsian | southAsian | any]
+    gender (str):       gender param of the face, default 'any'
+                            [male | female | any]
 
     Return:
     -: -
