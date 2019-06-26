@@ -1,5 +1,9 @@
 import re
+import os
 import subprocess as sp
+
+
+FG_SDK_PATH = '/Users/mofii/Documents/workplace/facegen'
 
 
 def generate_face(filename: str ='tmp', random: str ='random', race: str ='any', gender: str ='any'):
