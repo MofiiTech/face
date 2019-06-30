@@ -12,6 +12,9 @@ FG_MOUTH_PATH = os.path.join(FG_ANIMATE_PATH, 'Head')
 FG_HAIR_PATH = os.path.join(FG_ANIMATE_PATH, 'Hair')
 
 
+XML_HEADER = '<?xml version="1.0" encoding="UTF-8" standalone="yes" ?>\n<!DOCTYPE boost_serialization>'
+
+
 def init_face(filename: str, random: str, race: str, gender: str):
     
     '''Init a face model with parameters
@@ -73,7 +76,7 @@ def get_face_params(filename: str):
                             <asymmetry>, <african>, <east asian>, <south asian>,
                             <european>]
     '''
-    
+
     # Get face params of a given face model
     #     $ fg3 controls demographic edit <filename>.fg
     params = ['fg3', 'controls', 'demographic', 'edit', filename+'.fg']
@@ -188,6 +191,40 @@ def construct_face_models(filename: str, head_model: str,
     return True
 
 
+def add_expression_to_models(filename: str, expression: str, morph_value: float) -> bool:
+
+    '''Add expression to the face and mouth models
+
+    Notice that filenames of the face and mouth models should follow the patterns
+    as in construct_face_models().
+
+    Parameters:
+    filename (str):         filename of the models
+    expression (str):       the expression to be added
+    morph_value (float):    the value of the expression, from 0 to 1
+                                0 - no expression
+                                1 - full expression
+
+    Return:
+        (boolean):          True if the expression is added, False otherwise
+    '''
+
+    # Render expression to the face and mouth model
+    #     $ fg3 morph anim "" <filename>Head.tri <filename>Mouth.tri "Expression <expression>" <morph_value>
+    params = ['fg3', 'morph', 'anim', '', filename+'Head.tri',
+              filename+'Mouth.tri', 'Expression {:s}'.format(expression),
+              str(morph_value)]
+    # params = 'fg3 morph anim "" {:s}Head.tri, {:s}Mouth.tri "Expression {:s}" {:f}'.format(filename, filename, expression, morph_value)
+
+    stdout, _ = _run_command(params)
+    # stdout, _ = sp.Popen(params, stdout=sp.PIPE, stderr=sp.STDOUT).communicate()
+    if stdout.startswith('ERROR'):
+        print(stdout)
+        return False
+    
+    return True
+
+
 def render_model_to_png(filename: str) -> bool:
     
     '''Render face models to one PNG image without params
@@ -245,21 +282,19 @@ def render_model_to_png_with_params(filename: str, head_tri: str,
 
     return True
 
-def change_pose(filename: str, roll: float, yaw: float, pitch: float):
+def change_pose(filename: str, pose: List[float]) -> bool:
     
     '''Change the pose of a given .xml renderer
 
     Parameters:
-    filename (str):     filename of the .xml file
-    roll (float):       roatation of roll, usually -1 to 1
-    yaw (float):        rotation of yaw, usually -1 to 1
-    pitch (float):      rotation of pitch, usually -1 to 1
+    filename (str):         filename of the .xml file
+    pose (list[float]):     the new face pose
 
     Return:
         (boolean):      True if the pose is changed, False otherwise
     '''
 
-    pose_coord = [str(roll), str(yaw), str(pitch)]
+    pose_coord = [str(x) for x in pose]
 
     tree = ET.parse(filename+'.xml')
     for pose in tree.iter():
@@ -271,7 +306,63 @@ def change_pose(filename: str, roll: float, yaw: float, pitch: float):
         if item.tag == 'item':
             item.text = pose_coord[idx]
             idx += 1
-    tree.write('a.xml')
+    tree.write(filename+'.xml')
+
+    _add_header(filename+'.xml')
+
+    return True
+
+def change_illumination(filename: str, angle: List[float]) -> bool:
+    
+    '''Change the illumination angle
+
+    Parameters:
+    filename (str):         filename of the .xml file
+    angel (list[float]):    the new illumination angle
+
+    Return:
+        (boolean):          True if the illumination angel is changed,
+                            False otherwise
+    '''
+
+    angle_str = [str(x) for x in angle]
+
+    tree = ET.parse(filename+'.xml')
+    for direction in tree.iter():
+        if direction.tag == 'direction':
+            break
+    idx = 0
+    for item in direction.iter():
+        if item.tag == 'item':
+            item.text = angle_str[idx]
+            idx += 1
+    tree.write(filename+'.xml')
+
+    _add_header(filename+'.xml')
+
+    return True
+
+
+def render_renderer(filename: str) -> bool:
+    
+    '''Re-render the model after changing poses/illumination
+
+    Parameters:
+    filename (str):     filename of the renderer
+
+    Return:
+        (boolean):      True if the model is re-rendered, False otherwise
+    '''
+
+    # Re-render the renderer
+    #     $ fg3 render <filename>
+    params = ['fg3', 'render', filename]
+
+    stdout, _ = _run_command(params)
+    if stdout.startswith('ERROR'):
+        print(stdout)
+        return False
+    return True
 
 
 def generate_one_face_img(filename: str, params: Dict[str, str]) -> bool:
@@ -291,6 +382,24 @@ def generate_one_face_img(filename: str, params: Dict[str, str]) -> bool:
     gender = None if 'gender' not in params else params['gender']
 
     init_face(filename, random, race, gender)
+
+
+def _add_header(filename: str):
+
+    '''Add header to XML file for FaceGen use
+
+    Parameters:
+    filename (str):     filename of the target .xml file
+
+    Return:
+        (boolean):      True if header added, False otherwise
+    '''
+
+    with open(filename, 'r') as f:
+        with open('tmp.xml', 'w') as f2:
+            f2.write(XML_HEADER)
+            f2.write(f.read())
+    os.rename('tmp.xml', filename)
 
 
 def _run_command(params: List[str]) -> str:
@@ -329,5 +438,8 @@ if __name__=='__main__':
     # print(construct_face_models('test', None, None, None, None))
     # print('Render model to PNG:')
     # print(render_model_to_png('test'))
-    change_pose('testRender', 1.0, 2.0, 3.0)
+    # change_pose('testRender', [1.0, 1.0, 1.0])
+    # print(add_expression_to_models('test', 'SmileOpen', 1.0))
+
+    pass
 
